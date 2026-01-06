@@ -1,7 +1,50 @@
-# IntelliJ Platform Plugin Template
+# Android Screenshot Plugin
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+Android Studio plugin that captures screenshots from running Android emulators.
+
+## Features
+
+- **Automatic Emulator Connection**: Automatically detects and connects to running Android emulators
+- **Screenshot Capture**: Capture emulator screen with a button click
+- **Automatic File Saving**: Automatically saves to specified directory with timestamp format (yyyyMMdd_HHmmss.png)
+- **Save Location Configuration**: Easily set save directory from the tool window
+
+## Usage
+
+1. Launch Android Studio and install the plugin
+2. Start an Android emulator
+3. Open "Android Screenshot" from the right-side tool window
+4. Click "Select Save Location" button to specify where screenshots will be saved
+5. Click "Take Screenshot" button to capture the emulator screen
+6. Screenshots are automatically saved to the specified directory
+
+## Requirements
+
+- Android Studio 2025.2.2.1 or later
+- Android SDK (adb command required)
+- Running Android emulator or device
+
+## Development
+
+### Build
+
+```bash
+./gradlew build
+```
+
+### Build Plugin Distribution
+
+```bash
+./gradlew buildPlugin
+```
+
+This task builds the plugin distribution file (ZIP) that can be installed in Android Studio or published to JetBrains Marketplace. The distribution file will be created in `build/distributions/`.
+
+### Run Plugin
+
+```bash
+./gradlew runIde
+```
 
 ## Plugin template structure
 

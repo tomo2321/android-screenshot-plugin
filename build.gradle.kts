@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "0.1.0"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,13 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.0.0</h2>
+            <ul>
+                <li>Added Android emulator screenshot capture functionality</li>
+                <li>Automatic detection and connection to running emulators</li>
+                <li>Screenshot save location configuration</li>
+                <li>Automatic timestamped file naming (yyyyMMdd_HHmmss.png)</li>
+            </ul>
             <h2>0.1.0</h2>
             <ul>
                 <li>Initial release</li>

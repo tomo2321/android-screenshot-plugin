@@ -13,8 +13,8 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Android Studio plugin that displays "Hello, World!" in a tool window.<br>
-        <em>Simple demonstration plugin</em>
+        Android Studio plugin that captures screenshots from running Android emulators.<br>
+        <em>Automatically connects to running emulators and saves screenshots with timestamps</em>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -24,9 +24,9 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Hello World"
+        <toolWindow id="Android Screenshot"
                     anchor="right"
-                    factoryClass="com.github.tomo2321.androidscreenshotplugin.HelloWorldToolWindowFactory"
+                    factoryClass="com.github.tomo2321.androidscreenshotplugin.ScreenshotToolWindowFactory"
                     icon="/META-INF/pluginIcon.svg"/>
     </extensions>
 </idea-plugin>
