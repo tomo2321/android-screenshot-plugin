@@ -13,8 +13,8 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        Android Studio plugin that displays "Hello, World!" in a tool window.<br>
+        <em>Simple demonstration plugin</em>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -24,5 +24,9 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Hello World"
+                    anchor="right"
+                    factoryClass="com.github.tomo2321.androidscreenshotplugin.HelloWorldToolWindowFactory"
+                    icon="/META-INF/pluginIcon.svg"/>
     </extensions>
 </idea-plugin>

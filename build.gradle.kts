@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.0-SNAPSHOT"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -17,9 +17,9 @@ repositories {
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     intellijPlatform {
-        intellijIdea("2025.2.4")
-        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+        androidStudio("2025.2.2.1")
 
+        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
         // Add plugin dependencies for compilation here, example:
         // bundledPlugin("com.intellij.java")
@@ -29,11 +29,17 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "252.25557"
+            sinceBuild = "252"
+            untilBuild = "252.*"
         }
 
         changeNotes = """
-            Initial version
+            <h2>0.1.0</h2>
+            <ul>
+                <li>Initial release</li>
+                <li>Added Tool Window on the right side</li>
+                <li>Click button to show "Hello, World!" message</li>
+            </ul>
         """.trimIndent()
     }
 }
