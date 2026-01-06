@@ -11,6 +11,8 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/gradle.xml
+.idea/copilot.data.migration.*.xml
 *.iws
 *.iml
 *.ipr
