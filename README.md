@@ -1,22 +1,25 @@
 # Android Screenshot Plugin
 
-Android Studio plugin that captures screenshots from running Android emulators.
+Android Studio plugin that captures screenshots from running Android emulators and devices.
 
 ## Features
 
-- **Automatic Emulator Connection**: Automatically detects and connects to running Android emulators
-- **Screenshot Capture**: Capture emulator screen with a button click
+- **Automatic Device Detection**: Automatically detects and connects to running Android devices and emulators
+- **Manual Device Refresh**: Use the reload button to manually search for connected devices
+- **Screenshot Capture**: Capture device screen with a button click
 - **Automatic File Saving**: Automatically saves to specified directory with timestamp format (yyyyMMdd_HHmmss.png)
 - **Save Location Configuration**: Easily set save directory from the tool window
 
 ## Usage
 
 1. Launch Android Studio and install the plugin
-2. Start an Android emulator
+2. Start an Android emulator or connect a physical device via USB
 3. Open "Android Screenshot" from the right-side tool window
-4. Click "Select Save Location" button to specify where screenshots will be saved
-5. Click "Take Screenshot" button to capture the emulator screen
-6. Screenshots are automatically saved to the specified directory
+4. The plugin automatically searches for connected devices on startup
+5. Use the "Reload" button to manually refresh the device list if needed
+6. Click "Select Save Location" button to specify where screenshots will be saved
+7. Click "Take Screenshot" button to capture the device screen
+8. Screenshots are automatically saved to the specified directory
 
 ## Requirements
 

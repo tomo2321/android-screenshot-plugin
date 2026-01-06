@@ -27,8 +27,17 @@ class ScreenshotToolWindowContent(private val project: Project) {
     val contentPanel: JPanel = JPanel(BorderLayout())
     private var saveDirectory: File? = null
     private val directoryLabel = JLabel("Save Location: Not set")
-    private val statusLabel = JLabel("Emulator: Searching...")
     private var connectedEmulator: String? = null
+
+    companion object {
+        private const val STATUS_SEARCHING = "Device: Searching..."
+        private const val STATUS_NOT_FOUND = "Device: Not found"
+        private const val STATUS_ADB_NOT_FOUND = "Device: adb not found"
+        private const val STATUS_CONNECTED = "Device: %s (Connected)"
+        private const val STATUS_ERROR = "Device: Error - %s"
+    }
+
+    private val statusLabel = JLabel(STATUS_SEARCHING)
 
     init {
         val mainPanel = JPanel(GridBagLayout())
@@ -39,9 +48,16 @@ class ScreenshotToolWindowContent(private val project: Project) {
         gbc.gridy = 0
         gbc.weightx = 1.0
 
-        // Status label
+        // Status label and reload button section
+        val statusPanel = JPanel(BorderLayout(5, 0))
         statusLabel.horizontalAlignment = SwingConstants.CENTER
-        mainPanel.add(statusLabel, gbc)
+        val reloadButton = JButton("Reload")
+        reloadButton.addActionListener {
+            checkEmulators()
+        }
+        statusPanel.add(statusLabel, BorderLayout.CENTER)
+        statusPanel.add(reloadButton, BorderLayout.EAST)
+        mainPanel.add(statusPanel, gbc)
 
         // Directory selection section
         gbc.gridy++
@@ -86,12 +102,19 @@ class ScreenshotToolWindowContent(private val project: Project) {
     }
 
     private fun checkEmulators() {
+        // Reset status immediately
+        SwingUtilities.invokeLater {
+            statusLabel.text = STATUS_SEARCHING
+            connectedEmulator = null
+        }
+
         Thread {
             try {
                 val adbPath = findAdb()
                 if (adbPath == null) {
                     SwingUtilities.invokeLater {
-                        statusLabel.text = "Emulator: adb not found"
+                        statusLabel.text = STATUS_ADB_NOT_FOUND
+                        connectedEmulator = null
                     }
                     return@Thread
                 }
@@ -111,14 +134,16 @@ class ScreenshotToolWindowContent(private val project: Project) {
                 SwingUtilities.invokeLater {
                     if (devices.isNotEmpty()) {
                         connectedEmulator = devices[0]
-                        statusLabel.text = "Emulator: ${connectedEmulator} (Connected)"
+                        statusLabel.text = STATUS_CONNECTED.format(connectedEmulator)
                     } else {
-                        statusLabel.text = "Emulator: No running devices found"
+                        connectedEmulator = null
+                        statusLabel.text = STATUS_NOT_FOUND
                     }
                 }
             } catch (e: Exception) {
                 SwingUtilities.invokeLater {
-                    statusLabel.text = "Emulator: Error - ${e.message}"
+                    connectedEmulator = null
+                    statusLabel.text = STATUS_ERROR.format(e.message)
                 }
             }
         }.start()

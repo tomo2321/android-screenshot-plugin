@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.0.0"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,14 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.1.0</h2>
+            <ul>
+                <li>Added support for physical Android devices in addition to emulators</li>
+                <li>Added manual reload button to refresh device connection status</li>
+                <li>Improved device detection: properly resets connection state when no devices found</li>
+                <li>Enhanced status messages with standardized constants for better maintainability</li>
+                <li>Changed UI labels from "Emulator" to "Device" to reflect broader device support</li>
+            </ul>
             <h2>1.0.0</h2>
             <ul>
                 <li>Added Android emulator screenshot capture functionality</li>
