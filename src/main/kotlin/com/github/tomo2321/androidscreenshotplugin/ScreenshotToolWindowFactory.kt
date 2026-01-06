@@ -28,6 +28,7 @@ class ScreenshotToolWindowContent(private val project: Project) {
     private var saveDirectory: File? = null
     private val directoryLabel = JLabel("Save Location: Not set")
     private var connectedEmulator: String? = null
+    private val settings = ScreenshotSettings.getInstance(project)
 
     companion object {
         private const val STATUS_SEARCHING = "Device: Searching..."
@@ -81,6 +82,9 @@ class ScreenshotToolWindowContent(private val project: Project) {
 
         contentPanel.add(mainPanel, BorderLayout.NORTH)
 
+        // Load saved directory from settings
+        loadSavedDirectory()
+
         // Initialize: check for connected emulators
         checkEmulators()
     }
@@ -98,6 +102,22 @@ class ScreenshotToolWindowContent(private val project: Project) {
         if (result == JFileChooser.APPROVE_OPTION) {
             saveDirectory = fileChooser.selectedFile
             directoryLabel.text = "Save Location: ${saveDirectory?.absolutePath}"
+            // Save to settings
+            settings.saveDirectoryPath = saveDirectory?.absolutePath
+        }
+    }
+
+    private fun loadSavedDirectory() {
+        val savedPath = settings.saveDirectoryPath
+        if (!savedPath.isNullOrEmpty()) {
+            val file = File(savedPath)
+            if (file.exists() && file.isDirectory) {
+                saveDirectory = file
+                directoryLabel.text = "Save Location: ${saveDirectory?.absolutePath}"
+            } else {
+                // If saved directory no longer exists, clear it from settings
+                settings.saveDirectoryPath = null
+            }
         }
     }
 

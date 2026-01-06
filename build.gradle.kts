@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.1.0"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,11 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.2.0</h2>
+            <ul>
+                <li>Added persistent save location: the selected save directory is now remembered across plugin restarts (per project)</li>
+                <li>Improved user experience: no need to select save directory every time you restart the IDE</li>
+            </ul>
             <h2>1.1.0</h2>
             <ul>
                 <li>Added support for physical Android devices in addition to emulators</li>
