@@ -13,6 +13,10 @@ build/
 .idea/libraries/
 .idea/gradle.xml
 .idea/copilot.data.migration.*.xml
+.idea/misc.xml
+.idea/AndroidProjectSystem.xml
+.idea/deviceManager.xml
+.idea/screenshotSettings.xml
 *.iws
 *.iml
 *.ipr
