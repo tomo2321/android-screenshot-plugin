@@ -26,6 +26,10 @@
     <!-- Declare a dependency when using APIs from the Android plugin -->
     <depends>org.jetbrains.android</depends>
 
+    <!-- Declare a dependency when using Android Studio-specific features (APIs) -->
+    <!-- Only works in Android Studio and can't be used in other IntelliJ-based IDEs if declared -->
+    <!-- <depends>org.jetbrains.androidstudio</depends> -->
+
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
