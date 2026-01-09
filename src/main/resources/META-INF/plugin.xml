@@ -21,6 +21,11 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
+    <!-- Dependency on the Android APIs
+         Read more: https://plugins.jetbrains.com/docs/intellij/android-studio.html -->
+    <!-- Declare a dependency when using APIs from the Android plugin -->
+    <depends>org.jetbrains.android</depends>
+
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">

@@ -1,16 +1,19 @@
 package com.github.tomo2321.androidscreenshotplugin
 
+import com.android.ddmlib.AndroidDebugBridge
+import com.android.ddmlib.IDevice
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import org.jetbrains.android.sdk.AndroidSdkUtils
 import java.awt.BorderLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
@@ -27,8 +30,10 @@ class ScreenshotToolWindowContent(private val project: Project) {
     val contentPanel: JPanel = JPanel(BorderLayout())
     private var saveDirectory: File? = null
     private val directoryLabel = JLabel("Save Location: Not set")
-    private var connectedEmulator: String? = null
+    private var connectedDevice: IDevice? = null
+    private var bridge: AndroidDebugBridge? = null
     private val settings = ScreenshotSettings.getInstance(project)
+    private val logger = Logger.getInstance(ScreenshotToolWindowContent::class.java)
 
     companion object {
         private const val STATUS_SEARCHING = "Device: Searching..."
@@ -54,7 +59,7 @@ class ScreenshotToolWindowContent(private val project: Project) {
         statusLabel.horizontalAlignment = SwingConstants.CENTER
         val reloadButton = JButton("Reload")
         reloadButton.addActionListener {
-            checkEmulators()
+            checkDevices()
         }
         statusPanel.add(statusLabel, BorderLayout.CENTER)
         statusPanel.add(reloadButton, BorderLayout.EAST)
@@ -85,8 +90,8 @@ class ScreenshotToolWindowContent(private val project: Project) {
         // Load saved directory from settings
         loadSavedDirectory()
 
-        // Initialize: check for connected emulators
-        checkEmulators()
+        // Initialize: check for connected devices
+        checkDevices()
     }
 
     private fun selectDirectory() {
@@ -121,61 +126,97 @@ class ScreenshotToolWindowContent(private val project: Project) {
         }
     }
 
-    private fun checkEmulators() {
+    private fun checkDevices() {
         // Reset status immediately
         SwingUtilities.invokeLater {
             statusLabel.text = STATUS_SEARCHING
-            connectedEmulator = null
+            connectedDevice = null
         }
 
-        Thread {
+        ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                val adbPath = findAdb()
-                if (adbPath == null) {
-                    SwingUtilities.invokeLater {
-                        statusLabel.text = STATUS_ADB_NOT_FOUND
-                        connectedEmulator = null
+                // Initialize AndroidDebugBridge if not already done
+                if (bridge == null || !bridge!!.isConnected) {
+                    val adbPath = getAdbPath()
+                    if (adbPath == null) {
+                        SwingUtilities.invokeLater {
+                            statusLabel.text = STATUS_ADB_NOT_FOUND
+                            connectedDevice = null
+                        }
+                        return@executeOnPooledThread
                     }
-                    return@Thread
+
+                    // Initialize ADB using Android Studio's internal API
+                    @Suppress("DEPRECATION")
+                    AndroidDebugBridge.initIfNeeded(false)
+                    @Suppress("DEPRECATION")
+                    bridge = AndroidDebugBridge.createBridge(adbPath, false)
+
+                    // Wait for bridge to connect
+                    var timeout = 5000L // 5 seconds
+                    val sleepTime = 100L
+                    while (!bridge!!.isConnected && timeout > 0) {
+                        Thread.sleep(sleepTime)
+                        timeout -= sleepTime
+                    }
+
+                    if (!bridge!!.isConnected) {
+                        SwingUtilities.invokeLater {
+                            statusLabel.text = STATUS_ADB_NOT_FOUND
+                            connectedDevice = null
+                        }
+                        return@executeOnPooledThread
+                    }
+
+                    // Wait for device list
+                    timeout = 5000L
+                    while (!bridge!!.hasInitialDeviceList() && timeout > 0) {
+                        Thread.sleep(sleepTime)
+                        timeout -= sleepTime
+                    }
                 }
 
-                val process = Runtime.getRuntime().exec(arrayOf(adbPath, "devices"))
-                val reader = BufferedReader(InputStreamReader(process.inputStream))
-                val devices = mutableListOf<String>()
-
-                reader.forEachLine { line ->
-                    if (line.contains("\t") && line.contains("device")) {
-                        val deviceId = line.split("\t")[0].trim()
-                        devices.add(deviceId)
-                    }
-                }
-                process.waitFor()
+                val devices = bridge?.devices ?: emptyArray()
 
                 SwingUtilities.invokeLater {
                     if (devices.isNotEmpty()) {
-                        connectedEmulator = devices[0]
-                        statusLabel.text = STATUS_CONNECTED.format(connectedEmulator)
+                        connectedDevice = devices[0]
+                        val deviceName = connectedDevice?.name ?: connectedDevice?.serialNumber ?: "Unknown"
+                        statusLabel.text = STATUS_CONNECTED.format(deviceName)
                     } else {
-                        connectedEmulator = null
+                        connectedDevice = null
                         statusLabel.text = STATUS_NOT_FOUND
                     }
                 }
             } catch (e: Exception) {
+                logger.warn("Error checking for devices", e)
                 SwingUtilities.invokeLater {
-                    connectedEmulator = null
-                    statusLabel.text = STATUS_ERROR.format(e.message)
+                    connectedDevice = null
+                    statusLabel.text = STATUS_ERROR.format(e.message ?: "Unknown error")
                 }
             }
-        }.start()
+        }
     }
 
-    private fun findAdb(): String? {
-        // Check ANDROID_HOME environment variable
+    private fun getAdbPath(): String? {
+        // Try to use Android Studio's SDK utilities first
+        try {
+            @Suppress("DEPRECATION")
+            val adb = AndroidSdkUtils.getAdb(project)
+            if (adb != null && adb.exists()) {
+                logger.info("Using ADB from Android Studio SDK: ${adb.absolutePath}")
+                return adb.absolutePath
+            }
+        } catch (e: Exception) {
+            logger.info("Failed to get ADB from Android Studio SDK", e)
+        }
+
+        // Fall back to environment variables and common locations
         val androidHome = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
         if (androidHome != null) {
-            val adbPath = File(androidHome, "platform-tools/adb")
-            if (adbPath.exists()) {
-                return adbPath.absolutePath
+            val adbFile = File(androidHome, "platform-tools/adb")
+            if (adbFile.exists()) {
+                return adbFile.absolutePath
             }
         }
 
@@ -196,8 +237,7 @@ class ScreenshotToolWindowContent(private val project: Project) {
         // Try to find adb in PATH
         try {
             val process = Runtime.getRuntime().exec(arrayOf("which", "adb"))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val path = reader.readLine()
+            val path = process.inputStream.bufferedReader().readLine()
             process.waitFor()
             if (path != null && path.isNotEmpty()) {
                 return path.trim()
@@ -220,12 +260,13 @@ class ScreenshotToolWindowContent(private val project: Project) {
             return
         }
 
-        if (connectedEmulator == null) {
-            checkEmulators()
-            if (connectedEmulator == null) {
+        if (connectedDevice == null) {
+            checkDevices()
+            Thread.sleep(1000) // Give time for device detection
+            if (connectedDevice == null) {
                 JOptionPane.showMessageDialog(
                     contentPanel,
-                    "No running emulator found.\nPlease start an emulator and try again.",
+                    "No running device found.\nPlease start a device and try again.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
                 )
@@ -233,19 +274,42 @@ class ScreenshotToolWindowContent(private val project: Project) {
             }
         }
 
-        Thread {
+        ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                val adbPath = findAdb()
-                if (adbPath == null) {
+                val device = connectedDevice
+                if (device == null) {
                     SwingUtilities.invokeLater {
                         JOptionPane.showMessageDialog(
                             contentPanel,
-                            "adb not found. Please ensure Android SDK is installed.",
+                            "No device connected.",
                             "Error",
                             JOptionPane.ERROR_MESSAGE
                         )
                     }
-                    return@Thread
+                    return@executeOnPooledThread
+                }
+
+                // Use Android Studio's internal API to capture screenshot via shell command
+                // Android Studio uses executeShellCommand with screencap
+                logger.info("Capturing screenshot from device: ${device.serialNumber}")
+
+                val pngData = try {
+                    captureScreenshotViaShell(device)
+                } catch (e: Exception) {
+                    logger.warn("Failed to capture screenshot: ${e.message}", e)
+                    null
+                }
+
+                if (pngData == null || pngData.isEmpty()) {
+                    SwingUtilities.invokeLater {
+                        JOptionPane.showMessageDialog(
+                            contentPanel,
+                            "Failed to capture screenshot from device.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE
+                        )
+                    }
+                    return@executeOnPooledThread
                 }
 
                 // Generate filename with timestamp
@@ -254,49 +318,10 @@ class ScreenshotToolWindowContent(private val project: Project) {
                 val fileName = "$timestamp.png"
                 val localFile = File(saveDirectory, fileName)
 
-                // Take screenshot on device
-                val devicePath = "/sdcard/screenshot.png"
+                // Save the PNG data directly to file
+                localFile.writeBytes(pngData)
 
-                // Execute screencap command
-                val screencapProcess = Runtime.getRuntime().exec(
-                    arrayOf(adbPath, "-s", connectedEmulator, "shell", "screencap", "-p", devicePath)
-                )
-                screencapProcess.waitFor()
-
-                if (screencapProcess.exitValue() != 0) {
-                    SwingUtilities.invokeLater {
-                        JOptionPane.showMessageDialog(
-                            contentPanel,
-                            "Failed to capture screenshot.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE
-                        )
-                    }
-                    return@Thread
-                }
-
-                // Pull the screenshot to local machine
-                val pullProcess = Runtime.getRuntime().exec(
-                    arrayOf(adbPath, "-s", connectedEmulator, "pull", devicePath, localFile.absolutePath)
-                )
-                pullProcess.waitFor()
-
-                if (pullProcess.exitValue() != 0) {
-                    SwingUtilities.invokeLater {
-                        JOptionPane.showMessageDialog(
-                            contentPanel,
-                            "Failed to retrieve screenshot.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE
-                        )
-                    }
-                    return@Thread
-                }
-
-                // Clean up device screenshot
-                Runtime.getRuntime().exec(
-                    arrayOf(adbPath, "-s", connectedEmulator, "shell", "rm", devicePath)
-                )
+                logger.info("Screenshot saved successfully to: ${localFile.absolutePath}")
 
                 SwingUtilities.invokeLater {
                     JOptionPane.showMessageDialog(
@@ -307,6 +332,7 @@ class ScreenshotToolWindowContent(private val project: Project) {
                     )
                 }
             } catch (e: Exception) {
+                logger.warn("Error taking screenshot", e)
                 SwingUtilities.invokeLater {
                     JOptionPane.showMessageDialog(
                         contentPanel,
@@ -316,6 +342,51 @@ class ScreenshotToolWindowContent(private val project: Project) {
                     )
                 }
             }
-        }.start()
+        }
+    }
+
+    private fun captureScreenshotViaShell(device: IDevice): ByteArray? {
+        // Use shell command to capture screenshot, same as Android Studio
+        val outputReceiver = ByteArrayOutputReceiver()
+
+        try {
+            // Execute screencap command and get raw PNG data
+            device.executeShellCommand("screencap -p", outputReceiver, 10, java.util.concurrent.TimeUnit.SECONDS)
+            val pngData = outputReceiver.getData()
+
+            if (pngData.isEmpty()) {
+                logger.warn("Screenshot capture returned empty data")
+                return null
+            }
+
+            logger.info("Captured ${pngData.size} bytes of screenshot data")
+            return pngData
+        } catch (e: Exception) {
+            logger.warn("Failed to execute screencap command", e)
+            throw e
+        }
+    }
+
+    private class ByteArrayOutputReceiver : com.android.ddmlib.IShellOutputReceiver {
+        private val output = java.io.ByteArrayOutputStream()
+        private var cancelled = false
+
+        override fun addOutput(data: ByteArray, offset: Int, length: Int) {
+            if (!cancelled) {
+                output.write(data, offset, length)
+            }
+        }
+
+        override fun flush() {
+            // Nothing to flush
+        }
+
+        override fun isCancelled(): Boolean = cancelled
+
+        fun cancel() {
+            cancelled = true
+        }
+
+        fun getData(): ByteArray = output.toByteArray()
     }
 }

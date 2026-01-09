@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.2.0"
+version = "1.3.0"
 
 repositories {
     mavenCentral()
@@ -21,8 +21,8 @@ dependencies {
 
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-        // Add plugin dependencies for compilation here, example:
-        // bundledPlugin("com.intellij.java")
+        // Plugin dependencies for compilation
+        bundledPlugins("org.jetbrains.android")
     }
 }
 
@@ -34,6 +34,13 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.3.0</h2>
+            <ul>
+                <li>Added device name display: connected device names are now shown in the status label</li>
+                <li>Improved device detection: implemented AndroidDebugBridge integration for more reliable device connection</li>
+                <li>Enhanced ADB path resolution: added multiple fallback methods to locate adb binary</li>
+                <li>Better error handling: clearer error messages for connection and ADB-related issues</li>
+            </ul>
             <h2>1.2.0</h2>
             <ul>
                 <li>Added persistent save location: the selected save directory is now remembered across plugin restarts (per project)</li>
