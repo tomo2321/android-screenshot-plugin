@@ -2,12 +2,17 @@ package com.github.tomo2321.androidscreenshotplugin
 
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.IDevice
+import com.android.emulator.control.ImageFormat
+import com.android.tools.idea.streaming.emulator.EmulatorController
+import com.android.tools.idea.streaming.emulator.RunningEmulatorCatalog
+import com.android.tools.idea.streaming.emulator.getScreenshot
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.android.sdk.AndroidSdkUtils
 import java.awt.BorderLayout
 import java.awt.GridBagConstraints
@@ -16,6 +21,7 @@ import java.awt.Insets
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.imageio.ImageIO
 import javax.swing.*
 
 class ScreenshotToolWindowFactory : ToolWindowFactory {
@@ -294,7 +300,14 @@ class ScreenshotToolWindowContent(private val project: Project) {
                 logger.info("Capturing screenshot from device: ${device.serialNumber}")
 
                 val pngData = try {
-                    captureScreenshotViaShell(device)
+                    // Check if device is an emulator
+                    if (device.isEmulator) {
+                        logger.info("Device is an emulator, attempting to use EmulatorController")
+                        captureScreenshotFromEmulator(device)
+                    } else {
+                        logger.info("Device is a physical device, using standard method")
+                        captureScreenshotViaShell(device)
+                    }
                 } catch (e: Exception) {
                     logger.warn("Failed to capture screenshot: ${e.message}", e)
                     null
@@ -345,48 +358,154 @@ class ScreenshotToolWindowContent(private val project: Project) {
         }
     }
 
-    private fun captureScreenshotViaShell(device: IDevice): ByteArray? {
-        // Use shell command to capture screenshot, same as Android Studio
-        val outputReceiver = ByteArrayOutputReceiver()
-
+    private fun captureScreenshotFromEmulator(device: IDevice): ByteArray? {
         try {
-            // Execute screencap command and get raw PNG data
-            device.executeShellCommand("screencap -p", outputReceiver, 10, java.util.concurrent.TimeUnit.SECONDS)
-            val pngData = outputReceiver.getData()
+            // Get the emulator serial number (e.g., "emulator-5554")
+            val serialNumber = device.serialNumber
+            logger.info("Looking for EmulatorController for: $serialNumber")
 
-            if (pngData.isEmpty()) {
-                logger.warn("Screenshot capture returned empty data")
+            // Get RunningEmulatorCatalog to find the EmulatorController
+            val catalog = RunningEmulatorCatalog.getInstance()
+            val emulatorController = catalog.emulators.find {
+                it.emulatorId.serialPort.toString() == serialNumber.substringAfter("emulator-")
+            }
+
+            if (emulatorController != null) {
+                logger.info("Found EmulatorController, capturing via gRPC")
+                return captureFromEmulatorController(emulatorController)
+            } else {
+                logger.warn("EmulatorController not found, falling back to shell method")
+                return captureScreenshotViaShell(device)
+            }
+        } catch (e: Exception) {
+            logger.warn("Error accessing EmulatorController: ${e.message}", e)
+            // Fallback to shell method
+            return captureScreenshotViaShell(device)
+        }
+    }
+
+    private fun captureFromEmulatorController(emulatorController: EmulatorController): ByteArray? {
+        return try {
+            // Use coroutines to call the suspend function
+            runBlocking {
+                val imageFormat = ImageFormat.newBuilder()
+                    .setFormat(ImageFormat.ImgFormat.PNG)
+                    .setDisplay(0)  // Primary display
+                    .build()
+
+                logger.info("Requesting screenshot via gRPC...")
+                val screenshotProto = emulatorController.getScreenshot(imageFormat)
+                val imageBytes = screenshotProto.image.toByteArray()
+
+                logger.info("Captured ${imageBytes.size} bytes via EmulatorController")
+                imageBytes
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to capture via EmulatorController: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun captureScreenshotViaShell(device: IDevice): ByteArray? {
+        try {
+            // Use ddmlib's built-in getScreenshot() method which is the most reliable
+            // This is what Android Studio's built-in screenshot functionality uses for devices
+            logger.info("Capturing screenshot using RawImage API")
+            val rawImage = device.getScreenshot(10, java.util.concurrent.TimeUnit.SECONDS)
+
+            if (rawImage == null) {
+                logger.warn("getScreenshot() returned null")
                 return null
             }
 
-            logger.info("Captured ${pngData.size} bytes of screenshot data")
+            // Convert RawImage to BufferedImage
+            val image = java.awt.image.BufferedImage(
+                rawImage.width,
+                rawImage.height,
+                java.awt.image.BufferedImage.TYPE_INT_ARGB
+            )
+
+            var index = 0
+            val bytesPerPixel = rawImage.bpp shr 3 // bits per pixel / 8
+            for (y in 0 until rawImage.height) {
+                for (x in 0 until rawImage.width) {
+                    val value = rawImage.getARGB(index) ?: 0
+                    image.setRGB(x, y, value)
+                    index += bytesPerPixel
+                }
+            }
+
+            // Convert BufferedImage to PNG bytes
+            val outputStream = java.io.ByteArrayOutputStream()
+            ImageIO.write(image, "PNG", outputStream)
+            val pngData = outputStream.toByteArray()
+
+            logger.info("Captured ${pngData.size} bytes of PNG screenshot data (${rawImage.width}x${rawImage.height})")
             return pngData
         } catch (e: Exception) {
-            logger.warn("Failed to execute screencap command", e)
+            logger.warn("Failed to capture screenshot using RawImage API: ${e.message}", e)
+
+            // Fallback: try the file-based method
+            return captureScreenshotViaFile(device)
+        }
+    }
+
+    private fun captureScreenshotViaFile(device: IDevice): ByteArray? {
+        val remotePath = "/sdcard/screenshot_temp.png"
+
+        try {
+            logger.info("Trying file-based screenshot capture method")
+
+            // Capture screenshot to a file on the device
+            device.executeShellCommand(
+                "screencap $remotePath",
+                SimpleOutputReceiver(),
+                15,
+                java.util.concurrent.TimeUnit.SECONDS
+            )
+
+            // Pull the file from device
+            val tempFile = java.io.File.createTempFile("screenshot_pull", ".png")
+            try {
+                device.pullFile(remotePath, tempFile.absolutePath)
+                val pngData = tempFile.readBytes()
+
+                if (pngData.isEmpty()) {
+                    logger.warn("Screenshot file is empty")
+                    return null
+                }
+
+                logger.info("Captured ${pngData.size} bytes via file method")
+                return pngData
+            } finally {
+                tempFile.delete()
+                // Clean up file on device
+                device.executeShellCommand(
+                    "rm $remotePath",
+                    SimpleOutputReceiver(),
+                    5,
+                    java.util.concurrent.TimeUnit.SECONDS
+                )
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to capture screenshot via file method", e)
             throw e
         }
     }
 
-    private class ByteArrayOutputReceiver : com.android.ddmlib.IShellOutputReceiver {
-        private val output = java.io.ByteArrayOutputStream()
-        private var cancelled = false
-
+    /**
+     * Simple output receiver that discards shell command output.
+     * Used for commands where we don't need to process the output.
+     */
+    private class SimpleOutputReceiver : com.android.ddmlib.IShellOutputReceiver {
         override fun addOutput(data: ByteArray, offset: Int, length: Int) {
-            if (!cancelled) {
-                output.write(data, offset, length)
-            }
+            // Discard output
         }
 
         override fun flush() {
             // Nothing to flush
         }
 
-        override fun isCancelled(): Boolean = cancelled
-
-        fun cancel() {
-            cancelled = true
-        }
-
-        fun getData(): ByteArray = output.toByteArray()
+        override fun isCancelled(): Boolean = false
     }
 }

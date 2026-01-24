@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.3.0"
+version = "1.4.0"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,14 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.4.0</h2>
+            <ul>
+                <li>Improved screenshot capture: now captures screens correctly even for contents that would appear black with standard methods, by using gRPC via EmulatorController</li>
+                <li>Enhanced emulator screenshot capture: integrated EmulatorController gRPC API for faster and more reliable screenshot capture from emulators</li>
+                <li>Improved screenshot reliability: implemented multiple fallback methods (gRPC, RawImage API, and file-based) to ensure successful screenshot capture</li>
+                <li>Better device type handling: added automatic detection to use optimal capture method for emulators vs physical devices</li>
+                <li>Enhanced error handling: added comprehensive logging and fallback mechanisms for screenshot capture failures</li>
+            </ul>
             <h2>1.3.0</h2>
             <ul>
                 <li>Added device name display: connected device names are now shown in the status label</li>
