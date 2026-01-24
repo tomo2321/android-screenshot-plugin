@@ -1,11 +1,11 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.1.20"
-    id("org.jetbrains.intellij.platform") version "2.10.2"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jetbrains.intellij.platform") version "2.10.5"
 }
 
 group = "com.github.tomo2321"
-version = "1.4.0"
+version = "1.4.1"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,11 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.4.1</h2>
+            <ul>
+                <li>Updated Kotlin version to 2.3.0</li>
+                <li>Updated IntelliJ Platform Gradle Plugin version to 2.10.5</li>
+            </ul>
             <h2>1.4.0</h2>
             <ul>
                 <li>Improved screenshot capture: now captures screens correctly even for contents that would appear black with standard methods, by using gRPC via EmulatorController</li>
