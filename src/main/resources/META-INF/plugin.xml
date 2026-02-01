@@ -13,7 +13,7 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Android Studio plugin that captures screenshots from running Android emulators.<br>
+        Android Studio plugin that captures screenshots from running Android emulators and devices.<br>
         <em>Automatically connects to running emulators and saves screenshots with timestamps</em>
     ]]></description>
 

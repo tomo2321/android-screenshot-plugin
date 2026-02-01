@@ -4,29 +4,80 @@ Android Studio plugin that captures screenshots from running Android emulators a
 
 ## Features
 
-- **Automatic Device Detection**: Automatically detects and connects to running Android devices and emulators
+- **Automatic Device Detection**: Automatically detects and connects to running Android devices and emulators via ADB
 - **Manual Device Refresh**: Use the reload button to manually search for connected devices
-- **Screenshot Capture**: Capture device screen with a button click
+- **Advanced Screenshot Capture**: 
+  - Uses gRPC via EmulatorController for fast and reliable emulator screenshots
+  - Multiple fallback methods (gRPC → RawImage API → File-based) ensure successful capture
+  - Automatically selects optimal capture method based on device type (emulator vs physical device)
+- **Device Name Display**: Shows the name of the connected device in the status label
 - **Automatic File Saving**: Automatically saves to specified directory with timestamp format (yyyyMMdd_HHmmss.png)
 - **Save Location Configuration**: Easily set save directory from the tool window
 - **Persistent Save Location**: Remembers your selected save directory across plugin restarts (per project)
+- **Robust ADB Path Resolution**: Multiple fallback methods to locate adb binary automatically
+- **Comprehensive Error Handling**: Clear error messages and automatic fallback mechanisms
 
 ## Usage
 
 1. Launch Android Studio and install the plugin
-2. Start an Android emulator or connect a physical device via USB
+2. Start an Android emulator or connect a physical device via USB (ensure USB debugging is enabled)
 3. Open "Android Screenshot" from the right-side tool window
 4. The plugin automatically searches for connected devices on startup
-5. Use the "Reload" button to manually refresh the device list if needed
-6. Click "Select Save Location" button to specify where screenshots will be saved (only needed once - the location is saved per project)
-7. Click "Take Screenshot" button to capture the device screen
-8. Screenshots are automatically saved to the specified directory
+   - Device name and connection status are displayed in the status label
+   - If device is not detected, click the "Reload" button to refresh the device list
+5. Click "Select Save Location" button to specify where screenshots will be saved
+   - The location is saved per project and persists across IDE restarts
+6. Click "Take Screenshot" button to capture the device screen
+   - For emulators: uses fast gRPC-based capture via EmulatorController
+   - For physical devices: uses standard ADB-based capture methods
+   - Automatic fallback ensures capture success even if primary method fails
+7. Screenshots are automatically saved to the specified directory with timestamp (yyyyMMdd_HHmmss.png)
 
 ## Requirements
 
 - Android Studio 2025.2.2.1 or later
-- Android SDK (adb command required)
-- Running Android emulator or device
+- Android SDK with ADB (Android Debug Bridge) installed
+- Running Android emulator or physical device with USB debugging enabled
+- For physical devices: USB connection with proper device drivers installed
+
+## Technical Details
+
+### Screenshot Capture Methods
+
+The plugin implements a three-tier fallback strategy to ensure reliable screenshot capture:
+
+1. **EmulatorController gRPC API** (Emulators only)
+   - Fastest and most reliable method for emulators
+   - Uses Android Studio's internal gRPC API
+   - Captures PNG images directly without intermediate conversion
+   - Falls back to method 2 if EmulatorController is unavailable
+
+2. **RawImage API via DDMLib**
+   - Works for both emulators and physical devices
+   - Uses Android's `ddmlib` library to capture raw image data
+   - Converts raw pixel data to PNG format
+   - Falls back to method 3 if this method fails
+
+3. **File-based Capture via ADB Shell**
+   - Most compatible method, works on all devices
+   - Uses `screencap` command to save screenshot on device
+   - Pulls the file from device to local machine
+   - Slowest but most reliable fallback option
+
+### ADB Path Resolution
+
+The plugin automatically locates the ADB binary using multiple methods:
+
+1. Android Studio's SDK utilities (`AndroidSdkUtils.getAdb()`)
+2. Environment variables (`ANDROID_HOME`, `ANDROID_SDK_ROOT`)
+3. Common installation paths (macOS, Linux, Windows)
+4. System PATH lookup
+
+### Project Structure
+
+- `ScreenshotToolWindowFactory.kt`: Main plugin logic and UI
+- `ScreenshotSettings.kt`: Persistent storage for save directory path
+- `plugin.xml`: Plugin configuration and metadata
 
 ## Development
 
