@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.4.3"
+version = "1.5.0"
 
 repositories {
     mavenCentral()
@@ -30,10 +30,14 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "252"
-            untilBuild = "252.*"
+            untilBuild = "253.*"
         }
 
         changeNotes = """
+            <h2>1.5.0</h2>
+            <ul>
+                <li>Extended IDE compatibility: added support for IntelliJ IDEA 2025.3 (build 253.*)</li>
+            </ul>
             <h2>1.4.3</h2>
             <ul>
                 <li>Updated documents</li>

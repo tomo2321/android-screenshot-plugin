@@ -35,7 +35,7 @@ Android Studio plugin that captures screenshots from running Android emulators a
 
 ## Requirements
 
-- Android Studio 2025.2.2.1 or later
+- Android Studio 2025.2.2.1 or later / IntelliJ IDEA 2025.2 - 2025.3 (build 252.* - 253.*)
 - Android SDK with ADB (Android Debug Bridge) installed
 - Running Android emulator or physical device with USB debugging enabled
 - For physical devices: USB connection with proper device drivers installed
