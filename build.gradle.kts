@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.4.1"
+version = "1.4.2"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,10 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.4.2</h2>
+            <ul>
+                <li>Updated Gradle wrapper version to 9.3.1</li>
+            </ul>
             <h2>1.4.1</h2>
             <ul>
                 <li>Updated Kotlin version to 2.3.0</li>
