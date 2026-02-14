@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.tomo2321"
-version = "1.5.0"
+version = "1.5.1"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,10 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h2>1.5.1</h2>
+            <ul>
+                <li>Removed .idea directory from source control</li>
+            </ul>
             <h2>1.5.0</h2>
             <ul>
                 <li>Extended IDE compatibility: added support for IntelliJ IDEA 2025.3 (build 253.*)</li>

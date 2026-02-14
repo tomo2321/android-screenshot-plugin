@@ -7,16 +7,7 @@ build/
 .intellijPlatform/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-.idea/gradle.xml
-.idea/copilot.data.migration.*.xml
-.idea/misc.xml
-.idea/AndroidProjectSystem.xml
-.idea/deviceManager.xml
-.idea/screenshotSettings.xml
+.idea/
 *.iws
 *.iml
 *.ipr
